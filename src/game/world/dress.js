@@ -94,10 +94,12 @@ export function dressStation(B, M, scene) {
   refs.platformShutter = shutterTop;
   refs.spots.shutter = [(S.x0 + S.x1) / 2, S.top + 0.5, L.corridor.shutterZ + 0.6];
   // 点字ブロック（改札 → 大階段、右の階段へ）
-  tactilePath(B, M, [[0, 15.2], [0, 6], [-5, 1.0], [-5, -0.6]]);
-  tactilePath(B, M, [[0, 6], [11.25, 6], [11.25, 6.6]]);
-  tactilePath(B, M, [[-5, 1.0], [-13.5, 1.0], [-13.5, 9.8], [-15.6, 9.8]]);
-  for (const [x, z] of [[-5, -0.75], [11.25, 6.7], [0, 15.3]]) B.box(M.tactileDot, { x, y: 0.008, z, w: 0.6, h: 0.012, d: 0.6, collide: false, cast: false });
+  // 右の階段へは、階段の手前（z = 6.6）を通す。分かれ目・角・行き止まりには点の板
+  tactilePaths(B, M, [
+    [[0, 15.2], [0, 6.6], [0, 6], [-5, 1.0], [-5, -0.6]],
+    [[0, 6.6], [11.25, 6.6]],
+    [[-5, 1.0], [-13.5, 1.0], [-13.5, 9.8], [-15.6, 9.8]],
+  ], [[0, 15.2], [-5, -0.6], [11.25, 6.6], [-15.6, 9.8]]);
 
   // ================================================================ コンコース：東
   // 時計（柱）
@@ -288,13 +290,34 @@ function stairRail(B, M, x, z0, y0, z1, y1, yOff, center) {
   }
 }
 
-function tactilePath(B, M, pts) {
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
-    const len = Math.hypot(x1 - x0, z1 - z0);
-    const ry = Math.atan2(x1 - x0, z1 - z0);
-    B.box(M.tactileLine, { x: (x0 + x1) / 2, y: 0.006, z: (z0 + z1) / 2, w: 0.3, h: 0.012, d: len + 0.3, ry, collide: false, cast: false, uv: 1 });
+/**
+ * 点字ブロック。線（誘導）の板は、分かれ目・角・行き止まりの点（警告）の板の下で止める。
+ * 線どうしを重ねると、同じ高さの面がちらつくので。点の板は線より 8mm 高い（遠くから見てもちらつかないように）。
+ * paths：折れ線の並び（同じ座標の点はつながっているとみなす）、ends：点の板を置く行き止まり。
+ */
+function tactilePaths(B, M, paths, ends = []) {
+  const W = 0.3, S = 0.3;                // 線の幅、点の板の半分の大きさ（0.6m 四方）
+  const key = (p) => `${p[0]},${p[1]}`;
+  const deg = new Map();
+  for (const pts of paths) pts.forEach((p, i) => deg.set(key(p), (deg.get(key(p)) || 0) + (i > 0) + (i < pts.length - 1)));
+  const dots = new Map();
+  for (const pts of paths) for (const p of pts) if (deg.get(key(p)) >= 2) dots.set(key(p), p);
+  for (const p of ends) dots.set(key(p), p);
+  for (const pts of paths) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
+      const len = Math.hypot(x1 - x0, z1 - z0);
+      const ux = Math.abs(x1 - x0) / len, uz = Math.abs(z1 - z0) / len;
+      // 点の板の中で止める長さ（斜めでも、線の角が点の板からはみ出さないように）。点の板がなければ少しのばす
+      const inDot = Math.min(ux > 1e-6 ? (S - (W / 2) * uz) / ux : Infinity, uz > 1e-6 ? (S - (W / 2) * ux) / uz : Infinity) - 0.02;
+      const a = dots.has(key(pts[i])) ? inDot : -W / 2, b = dots.has(key(pts[i + 1])) ? inDot : -W / 2;
+      if (len - a - b < 0.25) continue;     // 点の板どうしのあいだが短い所は、線を引かない
+      const t0 = a / len, t1 = 1 - b / len;
+      const cx = x0 + (x1 - x0) * (t0 + t1) / 2, cz = z0 + (z1 - z0) * (t0 + t1) / 2;
+      B.box(M.tactileLine, { x: cx, y: 0.006, z: cz, w: W, h: 0.012, d: len - a - b, ry: Math.atan2(x1 - x0, z1 - z0), collide: false, cast: false, uv: 1 });
+    }
   }
+  for (const [x, z] of dots.values()) B.box(M.tactileDot, { x, y: 0.011, z, w: S * 2, h: 0.018, d: S * 2, collide: false, cast: false });
 }
 
 function windowFrame(B, M, axis, c, a, b, y0, y1, broken) {

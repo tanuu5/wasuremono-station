@@ -34,6 +34,7 @@ const FRAG = /* glsl */ `
   uniform vec3 uSunCol;
   uniform float uOpacity;
   uniform float uFull;
+  uniform float uGlint;
   varying vec4 vRefl;
   varying vec3 vW;
   varying vec2 vUv;
@@ -60,9 +61,9 @@ const FRAG = /* glsl */ `
       vec2 uv = vRefl.xy / max(vRefl.w, 1e-4) + dist;
       refl = texture2D(uRefl, uv).rgb;
     }
-    // 太陽のきらめき
+    // 太陽のきらめき（影は見ていないので、日の差さない所では uGlint = 0。明るすぎるとブルームで白い塊になるので上限）
     vec3 H = normalize(V + normalize(uSunDir));
-    float spec = pow(max(H.y + (w - 0.75) * 0.03, 0.0), 900.0) * 6.0;
+    float spec = min(pow(max(H.y + (w - 0.75) * 0.03, 0.0), 900.0) * 1.6, 0.9) * uGlint;
     vec3 col = mix(uDeep, refl, fres) + uSunCol * spec;
     gl_FragColor = vec4(col, m * uOpacity);
     #include <tonemapping_fragment>
@@ -97,9 +98,9 @@ export class Puddles {
   }
 
   /** 水たまりを置く（y = 床の高さ、full = 形のない水面）。 */
-  add(x, y, z, w, d, ry = 0, { full = false, opacity = 0.82, mask = 0 } = {}) {
+  add(x, y, z, w, d, ry = 0, { full = false, opacity = 0.82, mask = 0, glint = 1 } = {}) {
     const mat = new THREE.ShaderMaterial({
-      uniforms: { ...THREE.UniformsLib.fog, ...this.uniforms, uMask: { value: mask ? this.mask2 : this.mask }, uOpacity: { value: opacity }, uFull: { value: full ? 1 : 0 } },
+      uniforms: { ...THREE.UniformsLib.fog, ...this.uniforms, uMask: { value: mask ? this.mask2 : this.mask }, uOpacity: { value: opacity }, uFull: { value: full ? 1 : 0 }, uGlint: { value: glint } },
       vertexShader: VERT,
       fragmentShader: FRAG,
       transparent: true,
@@ -196,14 +197,15 @@ export function placePuddles(P, rng) {
   const H = L.hall;
   // 屋根の穴の下に、大きめの水たまり
   const spots = [[-3.8, 6.2, 3.4, 2.4], [4.5, -2.5, 2.8, 2.2], [8.8, 3.6, 3.6, 2.6], [-12.0, 11.6, 2.0, 1.5], [1.5, 11.6, 2.6, 1.6], [-12.4, -1.5, 1.8, 1.4], [6.4, 9.4, 2.2, 1.6], [-1.6, -6.8, 1.6, 1.2], [11.8, -6.5, 2.4, 1.8]];
-  spots.forEach(([x, z, w, d], i) => P.add(x, 0, z, w, d, rng() * 6, { mask: i % 2 }));
+  // ホールの中はほとんど日陰なので、きらめきは弱く
+  spots.forEach(([x, z, w, d], i) => P.add(x, 0, z, w, d, rng() * 6, { mask: i % 2, glint: 0.5 }));
   // 入口ホール・外
   P.add(6.5, 0, 22.5, 3.4, 2.6, 0.4, { mask: 1 });
   P.add(-2, 0, 33.5, 4, 3, 1.1);
   P.add(9, 0, 30.5, 2.6, 1.8, 0.2, { mask: 1 });
   // 地下の浸水（通路いっぱい）
   const D = L.under;
-  P.add((D.x0 + D.x1) / 2, D.waterY - 0.015, (D.water[0] + D.water[1]) / 2, D.x1 - D.x0, D.water[1] - D.water[0], 0, { full: true, opacity: 0.88 });
+  P.add((D.x0 + D.x1) / 2, D.waterY - 0.015, (D.water[0] + D.water[1]) / 2, D.x1 - D.x0, D.water[1] - D.water[0], 0, { full: true, opacity: 0.88, glint: 0 });
   // ホーム
   P.add(-14, L.platform.y, -20.5, 3, 2.2, 0.3);
   P.add(8.8, L.platform.y, -18.8, 4.2, 3.2, 1.2, { mask: 1 });
