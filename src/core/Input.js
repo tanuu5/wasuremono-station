@@ -74,7 +74,14 @@ export class Input {
     addEventListener('pagehide', release);
     document.addEventListener('visibilitychange', () => { if (document.hidden) release(); });
 
-    dom.addEventListener('mousedown', (e) => { if (e.button === 0 || e.button === 2) this._drag = { x: e.clientX, y: e.clientY }; this._setDevice('kb'); });
+    // 画面をタップすると、ブラウザは互換のためにマウスのイベントも送ってくる。それで「キーボード・マウス」に切り替わって
+    // キーの案内が出ないよう、押したのが指か（pointerType）を見る。指でさわったら、すぐ「タッチ」にする
+    addEventListener('touchstart', () => this._setDevice('touch'), { passive: true });
+    dom.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') return;
+      if (e.button === 0 || e.button === 2) this._drag = { x: e.clientX, y: e.clientY };
+      this._setDevice('kb');
+    });
     addEventListener('mousemove', (e) => {
       if (document.pointerLockElement === dom) this._addLook(e.movementX * this.lookSpeed.mouse, e.movementY * this.lookSpeed.mouse);
       else if (this._drag) {

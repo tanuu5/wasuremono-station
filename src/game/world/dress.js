@@ -510,10 +510,17 @@ function kioskInside(B, M, refs) {
   // 「ラムネ」のポスター（中）と、外の黒板
   P.wallSign(B, K.x0 + 0.66, 1.9, K.z0 + 2.4, Math.PI / 2, 0.7, 0.98, SG.poster({ kind: 'sea', seed: 93 }));
   const cb = sheet(SG.chalkboard([['ラムネ', 64, '#bfe8ff'], ['ひえてます', 44], ['', 20], ['ビー玉つき', 38, '#ffe08a']]), { rough: 0.9 });
-  const Fc = P.frame(B, K.x1 + 0.75, 0, K.z1 - 0.15, Math.PI / 2 + 0.35);
-  Fc.box(M.wood, { x: 0, y: 0.55, z: -0.08, w: 0.6, h: 0.82, d: 0.04, rx: -0.18, collide: false });
-  Fc.plane(cb, { x: 0, y: 0.56, z: -0.055, w: 0.56, h: 0.76, rx: -0.18 });
-  Fc.box(M.wood, { x: 0, y: 0.42, z: 0.12, w: 0.6, h: 0.82, d: 0.04, rx: 0.3, collide: false });
+  // A 型の立て看板：上でつながった 2 枚の板が、下で前（黒板）と後ろ（脚）に開く
+  const cry = Math.PI / 2 + 0.35;
+  const Fc = P.frame(B, K.x1 + 0.75, 0, K.z1 - 0.15, cry);
+  const ca = 0.2, clen = 0.85, chalf = clen / 2, ctop = clen * Math.cos(ca) + 0.005;
+  const cy = ctop - chalf * Math.cos(ca), cz = chalf * Math.sin(ca);
+  Fc.box(M.wood, { x: 0, y: cy, z: cz, w: 0.6, h: clen, d: 0.04, rx: -ca, collide: false });
+  Fc.plane(cb, { x: 0, y: cy + 0.023 * Math.sin(ca), z: cz + 0.023 * Math.cos(ca), w: 0.54, h: 0.72, rx: -ca });
+  Fc.box(M.wood, { x: 0, y: cy, z: -cz, w: 0.6, h: clen, d: 0.04, rx: ca, collide: false });
+  Fc.box(M.steelDark, { x: 0, y: ctop - 0.012, z: 0, w: 0.63, h: 0.03, d: 0.05, collide: false });   // 上のつなぎ目
+  const [cbx, , cbz] = Fc.P(0, 0, 0);
+  B.world.addBox({ x: cbx, y: 0.45, z: cbz, w: 0.62, h: 0.9, d: 0.36, ry: cry, cam: false });
   // 外のひさし（赤白のしま）
   // 付け根はシャッターの巻き取り箱の上（箱を突き抜けないように）
   for (let i = 0; i < 6; i++) B.box(i % 2 ? M.plasticCream : M.plasticRed, { x: K.x1 + 0.675, y: 2.86 - 0.375 * Math.tan(0.35), z: K.z0 + 0.415 + i * 0.83, w: 0.8, h: 0.04, d: 0.83, rz: -0.35, collide: false });
