@@ -64,6 +64,7 @@
 | 一時停止 | Esc / P | Start | Ⅱ |
 
 - 進み具合はブラウザに自動で保存され、タイトルの「つづきから」で再開できます。
+- エンディングのあとに「つづきから」を選ぶと、夕暮れの駅をもう一度歩けます。駅のどこかに、見おぼえのないものが増えています。
 - はじめの演出は、Esc・Start・B / ○ で飛ばせます。
 - 画質は設定画面で選べます（自動・高・中・低）。重いときは「中」か「低」に。
 
@@ -133,6 +134,8 @@ Tsukimizaka Station has been empty for a long time. Sunlight falling through a h
 - Sunbeams through the broken roof, vines, puddles that reflect the light, and an evening you have to earn
 - Wander a flooded underground passage, and a collapsed shopping street where sunlight falls through the broken floor
 - Almost everything — the station, the robot, the posters, the music — is generated in code (the only image files are a calendar, a scribbled message and a timetable poster)
+
+After the ending, choose Continue to walk the station again at dusk — a few things have appeared that weren't there before.
 
 Controls: `WASD` move · mouse look · `E` examine · `Space` jump · `Shift` run · `Tab` notebook · `Esc` pause. Gamepads and touch screens work too.
 

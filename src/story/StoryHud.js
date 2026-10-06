@@ -107,8 +107,11 @@ export class StoryHud {
     this.onGlyphs?.();
   }
   renderNote() {
-    this.noteBody.textContent = t(this.noteKey);
+    const text = t(this.noteKey);
+    this.noteBody.textContent = text;
     this.noteEl.classList.toggle('vertical', !!this.verticalNote(document.documentElement.lang));
+    // 長い手紙は、横書きの広い画面で 2 段に組む（1 枚に収める。パッドやキーではスクロールしにくいので）
+    this.noteEl.classList.toggle('long', text.split('\n').length > 14);
   }
   closeNote() { this.noteKey = null; this.noteEl.classList.add('hidden'); }
   get noteOpen() { return !!this.noteKey; }

@@ -247,6 +247,7 @@ export class Game {
     this.renderer.setFx({ fade: 0 });
     this.setObjective();
     this.setState('play');
+    if (this.flags.has('cleared')) this.story.say('after.hint');
   }
 
   /** 確認用：途中から遊べる状態にする（__dev.goto('play', { at, flags, found })）。 */
@@ -298,6 +299,7 @@ export class Game {
     this.setBoards('off');
     this.player.frozen = false;
     this.walkTo = null;
+    this.setAfter(false);
     this.playTime = 0;
     this.memoryWant = 0;
     if (this.evening > 0) { this.setTimeOfDay(0); this.scene.environment = this.envNoon; }
@@ -333,16 +335,20 @@ export class Game {
     if (this.flags.has('officeOpen')) this.refs.officeDoor.open(1);
     if (this.flags.has('power')) { this.setPower(1); this.refs.platformShutter.open(1); this.refs.lever.arm.rotation.x = LEVER_ON; this.setBoards(this.found.size === 7 ? 'final' : 'on'); }
     if (this.flags.has('ticketOut') && !this.found.has('ticket')) { this.items.ticket.group.visible = true; this.items.ticket.glow.visible = true; }
-    if (this.flags.has('cleared')) { this.setTimeOfDay(1); this.startClocks(18 * 60 + 12, 1); }
+    if (this.flags.has('cleared')) { this.setTimeOfDay(1); this.startClocks(18 * 60 + 12, 1); this.setAfter(true); }
     const pos = d.pos;
     if (pos) this.player.place(pos[0], pos[1] + 0.05, pos[2], pos[3] || 0);
     else this.reset();
   }
 
+  /** クリアのあとにだけ出るもの（新聞の切り抜き・乗客からのカード・貼り紙の書き足し）。 */
+  setAfter(on) { for (const m of this.refs.after || []) m.visible = on; }
+
   // ================================================================ 目的
   /** [文言のキー, 値, 地図に出す場所] */
   objectiveKey() {
     const n = this.found.size, S = this.refs.spots;
+    if (this.flags.has('cleared')) return ['obj.after', null, null];
     if (!this.flags.has('lantern')) return ['obj.lantern', null, S.deskLantern];
     if (!this.flags.has('ledger')) return ['obj.ledger', null, S.ledger];
     if (n === 7) return ['obj.deliver', null, S.board];
@@ -366,7 +372,7 @@ export class Game {
     const look = (id, pos, key, extra = {}) => I.add({ id, pos, prompt: 'prompt.look', use: (G) => G.run(ST.look(G, typeof key === 'function' ? key(G) : key)), ...extra });
     // 忘れ物センター
     I.add({ id: 'lantern', pos: R.deskLantern, prompt: 'prompt.take', radius: 1.4, enabled: () => !F.has('lantern'), use: (G) => G.run(ST.takeLantern(G)) });
-    I.add({ id: 'ledger', pos: R.ledger, prompt: 'prompt.read', radius: 1.5, enabled: () => F.has('lantern'), use: (G) => G.run(ST.readLedger(G)) });
+    I.add({ id: 'ledger', pos: R.ledger, prompt: 'prompt.read', radius: 1.5, enabled: () => F.has('lantern'), use: (G) => (G.flags.has('cleared') ? G.run(G.readNote('note.ledgerAfter')) : G.run(ST.readLedger(G))) });
     look('dock', R.dock, 'look.dock', { radius: 1.1, enabled: () => F.has('lantern') });
     look('shelf', R.shelf, 'look.shelf', { radius: 1.6 });
     look('umbrellas', R.umbrellas, 'look.umbrellas', { radius: 1.3 });
@@ -383,6 +389,7 @@ export class Game {
     // 駅務室
     I.add({ id: 'officeDoor', pos: [7.8, 1.0, L.stationOffice.z0 - 0.6], prompt: 'prompt.open', radius: 1.4, enabled: () => !F.has('officeOpen'), use: (G) => G.run(G.openOfficeDoor()) });
     I.add({ id: 'diary', pos: R.diary, prompt: 'prompt.read', radius: 1.4, use: (G) => G.run(G.readNote('note.diary')) });
+    I.add({ id: 'news', pos: R.news, prompt: 'prompt.read', radius: 1.3, enabled: () => F.has('cleared'), use: (G) => G.run(G.readNote('note.news')) });
     I.add({ id: 'keybox', pos: R.keybox, prompt: 'prompt.look', radius: 1.4, use: (G) => (G.flags.has('key') ? G.run(ST.look(G, 'look.keyboxEmpty')) : G.run(ST.takeKey(G))) });
     // 入口ホール
     I.add({
@@ -395,7 +402,7 @@ export class Game {
       },
     });
     look('phone', R.phone, (G) => (G.flags.has('power') ? 'look.phoneOn' : 'look.phone'), { radius: 1.4 });
-    look('notice', R.notice, 'look.notice', { radius: 1.4 });
+    look('notice', R.notice, (G) => (G.flags.has('cleared') ? 'look.noticeAfter' : 'look.notice'), { radius: 1.4 });
     // 地下
     look('graffiti', R.graffiti, 'look.graffiti', { radius: 1.6 });
     look('alleySign', R.alleySign, 'look.alley', { radius: 1.6 });
@@ -406,6 +413,7 @@ export class Game {
     I.add({ id: 'lever', pos: R.lever, prompt: 'prompt.pull', radius: 1.4, use: (G) => (G.flags.has('power') ? G.run(ST.look(G, 'look.leverDone')) : G.run(ST.powerOn(G))) });
     // ホーム
     look('nameSign', R.nameSign, 'look.nameSign', { radius: 1.6 });
+    I.add({ id: 'thanks', pos: R.thanks, prompt: 'prompt.read', radius: 1.4, enabled: () => F.has('cleared'), use: (G) => G.run(G.readNote('note.thanks')) });
     look('train', [-9, L.track2.y + 1.2, L.track2.rail + 1.6], 'look.train', { radius: 2.2 });
     I.add({
       id: 'deliver', pos: [R.board[0], R.board[1] + 0.5, R.board[2]], prompt: 'prompt.deliver', radius: 1.4, cone: -1,

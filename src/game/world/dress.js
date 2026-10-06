@@ -13,7 +13,7 @@ export const LEVER_ON = 0.5;
 
 export function dressStation(B, M, scene) {
   const rng = rand(4242);
-  const refs = { vending: [], tickets: [], lights: [], boards: [], clocks: [], dynamic: [], spots: {} };
+  const refs = { vending: [], tickets: [], lights: [], boards: [], clocks: [], dynamic: [], spots: {}, after: [] };
   const H = L.hall;
   const add = (o) => { scene.add(o); refs.dynamic.push(o); return o; };
 
@@ -64,8 +64,10 @@ export function dressStation(B, M, scene) {
   const sgnPlat = SG.guideSign({ w: 1536, h: 320, items: [{ icon: 'arrowU', w: 0.5 }, { icon: 'train', iconBox: true, w: 0.55 }, { text: 'のりば　1・2番線', sub: 'Platforms 1・2', w: 2.6 }], seed: 3 });
   const sgnPlatB = SG.guideSign({ w: 1536, h: 320, items: [{ icon: 'arrowU', w: 0.5 }, { icon: 'exit', w: 0.55 }, { text: '改札口・出口', sub: 'Ticket Gates・Exit', w: 2.6 }], seed: 5, yellow: true });
   P.hangingSign(B, M, -3.5, 6.2, 3.2, 0, 4.8, 1.0, sgnPlat, { rodTop: 12.7, back: sgnPlatB });
-  // 階段の上の「のりば」
-  P.wallSign(B, -5, 9.0, H.z0 + 0.01, 0, 5.2, 0.85, SG.guideSign({ w: 1536, h: 252, items: [{ icon: 'train', iconBox: true, w: 0.5 }, { text: '1・2番線 のりば', sub: 'Platforms', w: 2.5 }], seed: 7 }));
+  // 階段の上の「のりば」：キャットウォークの前の縁から下げる（壁に貼ると、キャットウォークの床と支えの裏に隠れる）
+  const cwEdge = H.z0 + 0.6 + 0.5;
+  B.box(M.steelDark, { x: -5, y: 8.33, z: cwEdge, w: 5.3, h: 0.9, d: 0.05, collide: false });
+  P.wallSign(B, -5, 8.33, cwEdge + 0.025, 0, 5.2, 0.85, SG.guideSign({ w: 1536, h: 252, items: [{ icon: 'train', iconBox: true, w: 0.5 }, { text: '1・2番線 のりば', sub: 'Platforms', w: 2.5 }], seed: 7 }));
   // 発車標（電気が戻ると光る）
   const dbOff = SG.departureBoard({ lit: false });
   const dbOn = SG.departureBoard({ lit: true });
@@ -197,8 +199,9 @@ export function dressStation(B, M, scene) {
   P.wallSign(B, E.x1 - 0.02, 1.9, 20.5, -Math.PI / 2, 0.7, 0.32, SG.guideSign({ w: 512, h: 232, items: [{ icon: 'phone', text: '電話', size: 90 }], seed: 23 }));
   refs.spots.phone = [E.x1 - 0.9, 1.0, 20.5];
   P.seats(B, M, E.x1 - 0.5, 24, -Math.PI / 2, 4, 'cream');
-  P.wallSign(B, E.x0 + 0.02, 1.9, 22, Math.PI / 2, 0.9, 1.27, SG.poster({ kind: 'notice', seed: 59 }));
-  refs.spots.notice = [E.x0 + 0.6, 1.5, 22];
+  // 最終列車の貼り紙（西の壁の、地下への口より南。口の前は腰壁で立てないので）
+  P.wallSign(B, E.x0 + 0.02, 1.9, 27.05, Math.PI / 2, 0.9, 1.27, SG.poster({ kind: 'notice', seed: 59 }));
+  refs.spots.notice = [E.x0 + 0.6, 1.5, 27.05];
   // 天井の照明
   for (let x = -12; x <= 14; x += 6.5) for (const z of [19, 25]) P.tubeLight(B, M, x, E.h, z, 0, tubeOff, 1.2);
 
@@ -253,7 +256,38 @@ export function dressStation(B, M, scene) {
   P.rubble(B, M, 15.5, -9.5, 1.5, 12, rng);
   P.rubble(B, M, -10.2, 14.2, 1.4, 14, rng, { skip: (x, z) => inPit(x, z, 0.5) });
   refs.leafMat = leaf;
+  afterClear(M, refs, add);
   return refs;
+}
+
+/** クリアのあと（夕方の「つづきから」）にだけ出るもの。Game.setAfter() で出し入れする。 */
+function afterClear(M, refs, add) {
+  const card = (tex, x, y, z, w, h, rot, { flat = false, rough = 0.85 } = {}) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), sheet(tex, { rough, transparent: true }));
+    if (flat) m.rotation.set(-Math.PI / 2, 0, rot);
+    else m.rotation.set(0, rot, 0);
+    m.position.set(x, y, z);
+    m.receiveShadow = true;
+    m.visible = false;
+    m.name = 'after';
+    add(m);
+    refs.after.push(m);
+    return m;
+  };
+  const SO = L.stationOffice, E = L.entrance, Pf = L.platform;
+  // 駅務室の北の壁：新聞の切り抜き（ピンでとめてある）
+  card(SG.newsClip(), 9.6, 1.5, SO.z0 + 0.012, 0.36, 0.45, 0, { rough: 0.9 });
+  const pin = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), M.plasticRed);
+  pin.position.set(9.6, 1.7, SO.z0 + 0.02);
+  pin.visible = false;
+  add(pin);
+  refs.after.push(pin);
+  refs.spots.news = [9.6, 1.3, SO.z0 + 0.55];
+  // ホームのベンチ（スケッチブックがあった所）：乗客からのカード
+  card(SG.thanksCard(), -1.55, Pf.y + 0.458, -19.45, 0.26, 0.18, 0.4, { flat: true });
+  refs.spots.thanks = [-1.55, Pf.y + 0.5, -19.45];
+  // 入口ホールの貼り紙の下：鉛筆の書き足し
+  card(SG.pencilMemo('来年も、お盆に'), E.x0 + 0.03, 1.12, 27.1, 0.34, 0.1, Math.PI / 2);
 }
 
 // ---------------------------------------------------------------- 部分ごと

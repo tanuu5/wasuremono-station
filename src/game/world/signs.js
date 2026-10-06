@@ -1005,3 +1005,87 @@ export function gratingTex({ size = 256, seed = 71 } = {}) {
   g.globalCompositeOperation = 'source-over';
   return texture(c, { wrap: false });
 }
+
+// ---------------------------------------------------------------- クリアのあとに増えるもの（夕方の「つづきから」）
+/** 新聞の切り抜き（黄ばんだ紙。見出し・写真・本文）。 */
+export function newsClip({ w = 512, h = 640, seed = 75 } = {}) {
+  const { c, g } = canvas(w, h);
+  const r = rand(seed);
+  g.clearRect(0, 0, w, h);
+  // はさみで切ったふち（少しがたがた）
+  g.fillStyle = '#e8dfc6';
+  g.beginPath();
+  const pts = [[8, 10], [w - 10, 6], [w - 6, h - 12], [10, h - 6]];
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x + r.range(-3, 3), y + r.range(-3, 3)) : g.moveTo(x, y)));
+  g.closePath(); g.fill();
+  g.fillStyle = '#3a352c';
+  g.textBaseline = 'top';
+  g.font = `bold 20px ${JP_SERIF}`;
+  g.fillText('月見坂新聞', 28, 26);
+  g.fillRect(28, 54, w - 56, 2);
+  g.font = `bold 46px ${JP_SERIF}`;
+  g.fillText('月見坂線、', 28, 70);
+  g.fillText('あす最後の運行', 28, 122);
+  g.font = `bold 22px ${JP_SANS}`;
+  g.fillText('お盆の臨時列車、今年かぎり', 30, 182);
+  // 写真（夜のホームと列車）
+  g.fillStyle = '#4a463e'; g.fillRect(28, 222, w - 56, 170);
+  g.fillStyle = '#7d776a'; g.fillRect(44, 300, w - 88, 52);
+  g.fillStyle = '#d8d0b8';
+  for (let i = 0; i < 6; i++) g.fillRect(60 + i * 68, 312, 44, 20);
+  g.fillStyle = '#e9e1c9'; g.beginPath(); g.arc(w - 90, 258, 16, 0, 6.28); g.fill();
+  // 本文（小さな字の行）
+  g.fillStyle = '#4a443a';
+  g.font = `15px ${JP_SERIF}`;
+  const body = ['海ヶ浜から山ノ原までを結んできた月見坂線が、', 'あす八月十五日で運行を終える。沿線の町も、', 'この夏でそろって移る。最後の列車は、月見坂駅を', '午後十一時四十二分に出る臨時列車。毎年、お盆の', '夜にだけ走ってきた列車で、駅長は「今年は、', 'みんなで乗ります」と話した。駅の案内ロボット', '「トモ」は、駅に残して休ませるという。'];
+  body.forEach((l, i) => g.fillText(l, 30, 410 + i * 26, w - 60));
+  weather(c, { amount: 0.5, seed, fade: 0.35, streaks: 0.3, edge: 0.2 });
+  return texture(c, { wrap: false });
+}
+
+/** 乗客からのカード（トモくんへ）。いろいろな人の字と、すみにトモの絵。 */
+export function thanksCard({ w = 512, h = 360, seed = 77 } = {}) {
+  const { c, g } = canvas(w, h);
+  const r = rand(seed);
+  g.fillStyle = '#f6f0e0'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(180, 150, 100, 0.5)'; g.lineWidth = 3; g.strokeRect(8, 8, w - 16, h - 16);
+  g.textBaseline = 'top';
+  g.fillStyle = '#2b3a5a';
+  g.font = `bold 36px ${JP_ROUND}`;
+  g.fillText('トモくんへ', 28, 22);
+  const lines = [['かさ、ありがとう', '#c0392b'], ['ビー玉、はんぶんこ！', '#2a6cb0'], ['ミミ、おかえり', '#b05a8a'], ['いってきます', '#3a3a3a'], ['またね', '#2d8a5e']];
+  lines.forEach(([s, col], i) => {
+    g.save();
+    g.translate(34 + (i % 2) * 18, 84 + i * 50);
+    g.rotate(r.range(-0.05, 0.05));
+    g.fillStyle = col;
+    g.font = `${r.range(24, 30)}px ${JP_ROUND}`;
+    g.fillText(s, 0, 0);
+    g.restore();
+  });
+  // トモの絵（丸い頭と、ランタン）
+  const x = w - 110, y = 190;
+  g.strokeStyle = '#333'; g.lineWidth = 3;
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(x, y, 34, 0, 6.28); g.fill(); g.stroke();
+  g.fillStyle = '#26303a'; g.beginPath(); g.ellipse(x, y + 4, 24, 15, 0, 0, 6.28); g.fill();
+  g.fillStyle = '#79e6ff'; g.beginPath(); g.arc(x - 9, y + 4, 4, 0, 6.28); g.arc(x + 9, y + 4, 4, 0, 6.28); g.fill();
+  g.strokeStyle = '#333';
+  g.beginPath(); g.moveTo(x - 20, y + 32); g.lineTo(x - 26, y + 90); g.moveTo(x + 20, y + 32); g.lineTo(x + 26, y + 90); g.stroke();
+  g.strokeRect(x - 22, y + 34, 44, 46);
+  g.fillStyle = '#ffb347'; g.fillRect(x + 34, y + 60, 16, 20);
+  weather(c, { amount: 0.2, seed, fade: 0.1, streaks: 0, edge: 0.1 });
+  return texture(c, { wrap: false });
+}
+
+/** 鉛筆の書き足し（小さな紙）。 */
+export function pencilMemo(text, { w = 512, h = 144, seed = 79 } = {}) {
+  const { c, g } = canvas(w, h);
+  g.fillStyle = '#f1ece0'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(70, 70, 76, 0.85)';
+  g.font = `${h * 0.42}px ${JP_ROUND}`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.save(); g.translate(w / 2, h / 2); g.rotate(-0.03); g.fillText(text, 0, 0, w * 0.9); g.restore();
+  weather(c, { amount: 0.25, seed, fade: 0.15, streaks: 0, edge: 0.2 });
+  return texture(c, { wrap: false });
+}

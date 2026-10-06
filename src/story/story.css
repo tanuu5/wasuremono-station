@@ -27,6 +27,9 @@
 .modal.note .body { white-space: pre-wrap; }
 .modal.note.vertical .paper { width: auto; max-width: 94vw; height: min(30em, 76vh); writing-mode: vertical-rl; overflow-x: auto; padding: 1.6em 1.8em; letter-spacing: 0.08em; }
 .modal.note .close { color: #fff; font-size: 13px; display: flex; align-items: center; gap: 0.5em; }
+@media (min-width: 641px) and (min-height: 521px) {
+  .modal.note.long:not(.vertical) .paper { width: min(54em, 94vw); column-count: 2; column-gap: 2.6em; column-rule: 1px solid rgba(120, 90, 40, 0.22); }
+}
 @media (max-width: 640px), (max-height: 520px) {
   .modal.note .paper { font-size: 14px; line-height: 1.75; padding: 1.2em 1.3em; max-height: 80vh; }
 }

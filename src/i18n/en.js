@@ -218,6 +218,12 @@ export const en = {
   'nb.legend': '? = not found yet   ✓ = found   red ring = where to go next',
 
   // ヒント
+  'obj.after': 'Walk the station at dusk',
+  'after.hint': '…Here and there around the station, there are papers you don\'t remember seeing.',
+  'note.news': 'Tsukimizaka News (clipping)\n\nTsukimizaka Line makes its last run tomorrow\n\nThe Tsukimizaka Line, which has linked Umigahama and Yamanohara,\nends service tomorrow, August 15.\nThe towns along the line are moving away together this summer.\n\nThe last train is a special service\nleaving Tsukimizaka Station at 11:42 p.m.\nIt has run only on the night of Obon each year.\n"This year, we\'ll all be riding it," said the stationmaster.\n\nTomo, the station\'s guide robot,\nwill be left at the station to rest.\n"That one still has work to do."',
+  'note.thanks': 'To Tomo\n\nThank you for my umbrella.\nI got to say "welcome home." — Sakura\n\nI can finally mail my postcard.\nNext time, I\'ll go see the real Mt. Fuji.\n\nWe split the marble — half each!\n\nI won\'t let my hat fly away again.\nI made it to Grandma\'s all by myself.\n\nWelcome back, Mimi. Thank you, Tomo.\n\nTicket received, safe and sound.\nI\'m off to Umigahama.\n\nI\'ll draw you one more picture, Tomo.\nSee you!\n\n— The passengers of the last train',
+  'note.ledgerAfter': 'Lost-and-Found Ledger, Tsukimizaka Station\n(Below the last page, added later in a different hand)\n\nTo Tomo\n\nAll seven arrived safely.\nThank you.\n\nWell then — I\'m off.\nTake care of the station.\n\nStationmaster',
+  'look.noticeAfter': '"Tonight\'s last train is the special service departing at 23:42. Please don\'t leave anything behind." …Underneath, someone has added in small pencil: "Next year too, at Obon."',
   'hint.pit': 'The floor has caved in, sloping down to an old shopping street below. …Looks like you could walk down.',
   'look.alley': '"Tsukimi Yokocho" — the entrance to a little shopping street under the station. The ceiling has caved in further along.',
   'hint.gap': 'The floor has collapsed. …With a running jump, I might make it.',
