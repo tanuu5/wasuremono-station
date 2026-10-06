@@ -986,3 +986,22 @@ export function graffitiPicture({ color = [30, 34, 52], seed = 67 } = {}) {
   g.putImageData(d, 0, 0);
   return texture(c, { wrap: false });
 }
+
+/** 床の格子（グレーチング）。細い板が密に並び、つなぎの棒がまばらに渡る。すき間は透明（アルファ）。 */
+export function gratingTex({ size = 256, seed = 71 } = {}) {
+  const { c, g } = canvas(size);
+  const r = rand(seed);
+  g.clearRect(0, 0, size, size);
+  g.fillStyle = '#3b3e41';
+  for (let x = 4; x < size; x += 18) g.fillRect(x, 0, 6, size);
+  g.fillStyle = '#33363a';
+  for (let y = 20; y < size; y += 64) g.fillRect(0, y, size, 5);
+  // 錆（棒の上だけ）
+  g.globalCompositeOperation = 'source-atop';
+  for (let k = 0; k < 90; k++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(122, 78, 44, 0.55)' : 'rgba(84, 60, 40, 0.5)';
+    g.beginPath(); g.arc(r.range(0, size), r.range(0, size), r.range(2, 10), 0, 6.28); g.fill();
+  }
+  g.globalCompositeOperation = 'source-over';
+  return texture(c, { wrap: false });
+}

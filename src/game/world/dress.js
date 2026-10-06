@@ -1,6 +1,6 @@
 // 駅の飾りつけ：小物を置く。動く物・電気で光る物・調べられる物の手がかりは refs に入れて返す。
 import * as THREE from 'three';
-import { L, inPit } from './layout.js';
+import { L, inPit, onGrate } from './layout.js';
 import * as P from './props.js';
 import * as SG from './signs.js';
 import { sheet, patch } from './materials.js';
@@ -116,6 +116,26 @@ export function dressStation(B, M, scene) {
   // ロッカー（前の面の位置で置く。奥行き 0.6m が壁の手前に収まるように）
   P.lockers(B, M, H.x1 - 0.63, -1.2, -Math.PI / 2, 7, 4);
   P.lockers(B, M, 13.4, H.z0 + 0.63, 0, 7, 4);
+  // 床の格子（下は地下通路）。上を歩けて、光が透けて落ちる。影も格子の形に（customDepthMaterial）
+  const grTex = SG.gratingTex();
+  const grMat = sheet(grTex, { transparent: true, rough: 0.55 });
+  grMat.side = THREE.DoubleSide;
+  const grDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: grTex, alphaTest: 0.5, side: THREE.DoubleSide });
+  for (const [x, z] of L.grates) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), grMat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, -0.015, z);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    m.customDepthMaterial = grDepth;
+    m.name = 'grating';
+    add(m);
+    for (const k of [-1, 1]) {
+      B.box(M.steelDark, { x: x + k * 0.47, y: -0.01, z, w: 0.06, h: 0.03, d: 1.0, collide: false, cast: false });
+      B.box(M.steelDark, { x, y: -0.01, z: z + k * 0.47, w: 0.88, h: 0.03, d: 0.06, collide: false, cast: false });
+    }
+    B.world.addBox({ x, y: -0.06, z, w: 0.9, h: 0.12, d: 0.9, surface: 'metal' });
+  }
   // 落ちた案内板（斜めに床へ）
   const fallen = SG.guideSign({ w: 1536, h: 320, items: [{ icon: 'arrowR', w: 0.5 }, { icon: 'exit', w: 0.5 }, { text: '東口', sub: 'East Exit', w: 2 }], seed: 9 });
   const fs = sheet(fallen, { rough: 0.6 });
@@ -130,7 +150,8 @@ export function dressStation(B, M, scene) {
   // バルコニーの待合室あたり
   P.woodBench(B, M, 17.4, 6.6, -Math.PI / 2, 1.6, L.balcony.y);
   refs.spots.hatRail = [14.05, L.balcony.y + 1.05, 8.2];
-  P.wallSign(B, H.x1 - 0.02, L.balcony.y + 2.3, 4.5, -Math.PI / 2, 2.4, 0.5, SG.guideSign({ w: 1024, h: 214, items: [{ icon: 'waiting', text: '待合室', sub: 'Waiting Room' }], seed: 13 }));
+  // 窓（z 1.5〜4 のあいだ）の枠にかからないように、窓と窓のあいだの壁に
+  P.wallSign(B, H.x1 - 0.02, L.balcony.y + 2.3, 2.75, -Math.PI / 2, 2.0, 0.42, SG.guideSign({ w: 1024, h: 214, items: [{ icon: 'waiting', text: '待合室', sub: 'Waiting Room' }], seed: 13 }));
   P.vendingMachine(B, M, H.x1 - 0.42, -8.5, -Math.PI / 2, 1, 21);
 
   // ================================================================ 改札・駅務室・南
@@ -206,7 +227,7 @@ export function dressStation(B, M, scene) {
   for (let i = 0; i < 46; i++) {
     const x = H.x0 + 1 + rng() * (H.x1 - H.x0 - 2), z = H.z0 + 1 + rng() * (H.z1 - H.z0 - 2);
     const w = 1 + rng() * 3.2, d = 1 + rng() * 3.2, ry = rng() * 6;
-    if (inPit(x, z, Math.hypot(w, d) / 2)) continue;     // 床の穴にかかるもの
+    if (inPit(x, z, Math.hypot(w, d) / 2) || onGrate(x, z, Math.hypot(w, d) / 2)) continue;     // 床の穴・格子にかかるもの
     B.decal(stain, { x, y: 0, z, w, d, ry, lift: 0.004 + i * 0.0001 });
   }
   for (let i = 0; i < 30; i++) {
@@ -218,7 +239,7 @@ export function dressStation(B, M, scene) {
     B.decal(M.moss, { x, y: 0, z, w: 1.2 + rng() * 2.5, d: 0.8 + rng() * 1.6, ry: rng() * 6, lift: 0.008 + i * 0.0001 });
   }
   const leaf = leafMaterial();
-  const offPit = (x, z) => inPit(x, z, 0.15);
+  const offPit = (x, z) => inPit(x, z, 0.15) || onGrate(x, z, 0.1);
   P.litter(B, leaf, -6, 4, 6, 70, rng, 0, offPit);
   P.litter(B, leaf, 8, 2, 5, 40, rng);
   P.litter(B, leaf, 4, -8, 4, 40, rng);
@@ -495,7 +516,7 @@ function stationOffice(B, M, refs, add) {
   B.box(M.paper, { x: 10.4, y: 0.75, z: 13.55, w: 0.42, h: 0.03, d: 0.3, collide: false, ry: 0.2 });   // 駅の日誌
   B.box(M.plasticNavy, { x: 10.4, y: 0.76, z: 13.55, w: 0.2, h: 0.02, d: 0.3, collide: false, ry: 0.2 });
   B.cyl(M.plasticCream, { x: 11.0, y: 0.79, z: 13.8, r: 0.04, h: 0.1, seg: 10 });   // 湯のみ
-  B.cyl(M.chrome, { x: 8.7, y: 0.83, z: 13.9, r: 0.08, r2: 0.05, h: 0.18, seg: 12 });   // やかん
+  B.cyl(M.chrome, { x: 8.4, y: 0.83, z: 13.95, r: 0.08, r2: 0.05, h: 0.18, seg: 12 });   // やかん（机のはしから落ちないように内側へ）
   refs.spots.diary = [10.4, 0.8, 13.55];
   // 書類棚とファイル（北の壁）
   B.box(M.steelCream, { x: 11.6, y: 0.9, z: SO.z0 + 0.25, w: 1.6, h: 1.8, d: 0.4 });

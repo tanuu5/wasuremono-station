@@ -3,7 +3,7 @@
 // 草・茂みは InstancedMesh（数が多い）、つたと木は Builder にまとめる。
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { L, inPit } from './layout.js';
+import { L, inPit, onGrate } from './layout.js';
 import { rand } from './noise.js';
 
 // アトラスの区画（u0, v0, u1, v1）。canvas の上 = v の 1
@@ -180,7 +180,7 @@ export function buildPlants(B, M, scene, quality = 'high') {
   const inside = (x, z, r) => x > r.x0 - 0.2 && x < r.x1 + 0.2 && z > r.z0 - 0.2 && z < r.z1 + 0.2;
   for (let i = spots.length - 1; i >= 0; i--) {
     const [x, y, z] = spots[i];
-    if (y === 0 && (inPit(x, z, 0.12) || inside(x, z, L.kiosk) || inside(x, z, L.stationOffice))) spots.splice(i, 1);
+    if (y === 0 && (inPit(x, z, 0.12) || onGrate(x, z, 0.1) || inside(x, z, L.kiosk) || inside(x, z, L.stationOffice))) spots.splice(i, 1);
   }
   // 横丁：くずれた床の坂の、日の当たる所と、ふもと
   {

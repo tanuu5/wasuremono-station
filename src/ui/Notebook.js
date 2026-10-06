@@ -46,7 +46,9 @@ export class Notebook {
     this.items = state.items;
     this.objective = state.objective;
     this.setTab(tab, false);
-    this.screens.open('notebook');
+    // Game.setState('notebook') が先に開いている。ここでもう一度開くと積み重ねに 2 回入り、
+    // 「とじる」で 1 回閉じても開いたままの扱いになる（スマホで操作できなくなっていた）
+    if (!this.screens.isOpen('notebook')) this.screens.open('notebook');
   }
 
   setTab(tab, render = true) {

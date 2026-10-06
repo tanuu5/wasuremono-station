@@ -108,8 +108,11 @@ export class Screens {
     if (name === 'settings') this.syncSettings();
     applyDom(m);
     m.classList.remove('hidden');
+    // 同じ画面を 2 回積まない（2 回積むと、もどる 1 回では閉じきらない）。開いていれば、いちばん上へ
+    const i = this.stack.indexOf(m);
+    if (i >= 0) this.stack.splice(i, 1);
     this.stack.push(m);
-    this.cb.onModal?.(name, true);
+    if (i < 0) this.cb.onModal?.(name, true);
   }
 
   /** いちばん上の画面を閉じる。閉じたら true。 */
